@@ -4,6 +4,7 @@ import br.com.compass.paymentservicepb.constant.Brand;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Range;
 
@@ -11,13 +12,14 @@ import javax.validation.constraints.*;
 
 @Getter @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class CreditCardForm {
 
     @NotBlank  @Size(min = 13, max = 16, message = "This field should have thirteen to sixteen digits")
     @JsonProperty("card_number")
     private String cardNumber;
 
-//    @NotBlank
+    @NotBlank
     @JsonProperty("cardholder_name")
     private String cardHolderName;
 

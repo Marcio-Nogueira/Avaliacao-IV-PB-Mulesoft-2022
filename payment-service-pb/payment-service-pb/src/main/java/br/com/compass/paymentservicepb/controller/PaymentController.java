@@ -2,11 +2,10 @@ package br.com.compass.paymentservicepb.controller;
 
 import br.com.compass.paymentservicepb.dto.OrderDto;
 import br.com.compass.paymentservicepb.dto.PaymentDto;
-import br.com.compass.paymentservicepb.dto.TokenDto;
 import br.com.compass.paymentservicepb.form.OrderForm;
 import br.com.compass.paymentservicepb.form.PaymentForm;
+import br.com.compass.paymentservicepb.http.AuthClient;
 import br.com.compass.paymentservicepb.service.PaymentService;
-import br.com.compass.paymentservicepb.service.TokenService;
 import com.sun.istack.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,16 +21,17 @@ import java.util.List;
 public class PaymentController {
 
     @Autowired
-    private PaymentService service;
+    private AuthClient authClient;
 
     @Autowired
-    private TokenService tokenService;
+    private PaymentService service;
 
     @PostMapping()
     public ResponseEntity<PaymentDto> registerPayment(@RequestBody @Valid OrderForm form, @NotNull UriComponentsBuilder uriBuilder) {
-        OrderDto orderDto = service.createPayment(form);
-        TokenDto validToken = tokenService.getLastValidToken();
-        PaymentForm paymentForm = service.validateTokenAndCallGateway(validToken, orderDto);
+        service.getToken();
+
+        OrderDto orderDto = service.createPaymentOrder(form);
+        PaymentForm paymentForm = service.CallGateway(orderDto);
         PaymentDto paymentDto = service.registerPayment(paymentForm);
 
         URI uri = uriBuilder.path("/payment/{orderId}").buildAndExpand(paymentDto.getOrderId()).toUri();

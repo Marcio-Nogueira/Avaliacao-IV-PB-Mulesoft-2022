@@ -7,7 +7,6 @@ import br.com.compass.paymentservicepb.form.OrderForm;
 import br.com.compass.paymentservicepb.form.PaymentForm;
 import br.com.compass.paymentservicepb.constant.PaymentType;
 import br.com.compass.paymentservicepb.model.PaymentEntity;
-import br.com.compass.paymentservicepb.model.TokenEntity;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,25 +58,6 @@ public class MappersUtil {
         cardDto.setExpirationYear(String.valueOf(form.getCreditCardForm().getExpirationYear()));
 
         return orderDto;
-    }
-
-    public static TokenEntity convertTokenDtoToEntity(TokenDto dto) {
-        TokenEntity token = new TokenEntity();
-        token.setAccessToken(dto.getAccessToken());
-        token.setTokenType(dto.getTokenType());
-        token.setExpiresIn(dto.getExpiresIn());
-        token.setExpired(false);
-
-        return token;
-    }
-
-    public static TokenDto convertTokenEntityToDto (TokenEntity entity) {
-        TokenDto dto = new TokenDto();
-        dto.setTokenType(entity.getTokenType());
-        dto.setAccessToken(entity.getAccessToken());
-        dto.setExpiresIn(entity.getExpiresIn());
-
-        return dto;
     }
 
     public static PaymentDto convertPaymentFormToDto (PaymentForm paymentForm) {
