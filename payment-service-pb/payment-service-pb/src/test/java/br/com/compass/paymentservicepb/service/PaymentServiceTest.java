@@ -1,23 +1,17 @@
 package br.com.compass.paymentservicepb.service;
 
 import br.com.compass.paymentservicepb.constant.*;
-import br.com.compass.paymentservicepb.dto.CustomerDto;
-import br.com.compass.paymentservicepb.dto.OrderDto;
-import br.com.compass.paymentservicepb.dto.PaymentDto;
-import br.com.compass.paymentservicepb.dto.TokenDto;
+import br.com.compass.paymentservicepb.dto.*;
 import br.com.compass.paymentservicepb.form.*;
 import br.com.compass.paymentservicepb.http.AuthClient;
 import br.com.compass.paymentservicepb.model.PaymentEntity;
 import br.com.compass.paymentservicepb.repository.PaymentRepository;
 import br.com.compass.paymentservicepb.util.MappersUtil;
-import org.aspectj.lang.annotation.Before;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
@@ -27,7 +21,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest
 class PaymentServiceTest {
@@ -37,19 +30,26 @@ class PaymentServiceTest {
 
     private OrderForm orderForm;
 
-    @Mock
     private ItemForm item;
 
-    @Mock
     private OrderForm order;
 
-    @MockBean
-    private PaymentRepository repository;
+    @Captor
+    private ArgumentCaptor<TokenDto> captor;
+
+    @Mock
+    private PaymentRepository repositoryMock;
+
+    @Mock
+    AuthClient authClientMock;
+
+    @Mock
+    br.com.compass.paymentservicepb.http.PbBankClient pbBankClientMock;
 
     @BeforeEach
     public void beforeEach() {
         MockitoAnnotations.initMocks(this);
-        this.service = new PaymentService();
+        this.service = new PaymentService(this.authClientMock, this.pbBankClientMock ,this.repositoryMock);
     }
 
     @Test
@@ -85,32 +85,65 @@ class PaymentServiceTest {
 
     @Test
     void shouldRetunAListWithAllSuccesfullPaymentsTransactions() {
-        List<PaymentEntity> payments = repository.findAll();
+        List<PaymentEntity> paymentEntityList = createPaymentList();
+        Mockito.when(repositoryMock.findAll()).thenReturn(paymentEntityList);
 
-        assertNotEquals(null, payments);
+        List<PaymentDto> paymentDtoList = service.getAll();
+
+        Mockito.verify(repositoryMock).findAll();
+        assertNotEquals(null, paymentDtoList);
     }
 
     @Test
-    void ShouldReturnAExistentPaymentDto() {
-        long orderId = 1;
-        Optional<PaymentEntity> entity = repository.findById(orderId);
+    void ShouldReturnOneExistentPaymentDto() {
+        Optional<PaymentEntity> entity = Optional.of(createPaymentList().get(0));
+        Mockito.when(repositoryMock.findById(Mockito.any())).thenReturn(entity);
 
-        assertNotEquals(null, entity);
+        ResponseEntity<PaymentDto> paymentDtoResponse = service.getById(Mockito.any());
+
+        Mockito.verify(repositoryMock).findById(Mockito.any());
+        assertEquals(new ResponseEntity<>(HttpStatus.OK).getStatusCode(), paymentDtoResponse.getStatusCode());
     }
 
     @Test
-    void ShouldReturnAStringWithTheTypeBearerPlusToken() {
-        String accessToken = "token.sadadasda-sadsada";
-        String tokenType = "Bearer";
-        String bearerToken = tokenType + " " + accessToken;
-        assertNotEquals(null, bearerToken);
-        assertEquals("Bearer token.sadadasda-sadsada", bearerToken);
+    void ShouldNotReturnOnePaymentDtoInsteadShouldReturnNotFound() {
+        ResponseEntity<PaymentDto> paymentDtoResponse = service.getById(1l);
+
+        assertEquals(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCode(), paymentDtoResponse.getStatusCode());
+    }
+
+    @Test
+    void ShouldReturnOneStringWithTheTypeBearerPlusToken() {
+        TokenDto dto = createTokenDto();
+
+        String bearerToken = service.getBearerToken(dto);
+        assertEquals("Bearer sadsads-adas.a4q55qd5", bearerToken);
+    }
+
+    @Test
+    void ShouldValidateTokenAndReturnOrderpaymentForm() {
+        OrderDto orderDto = createOrderDto();
+        String bearerToken = "Bearer sadsads-adas.a4q55qd5";
+        TokenDto tokenDto = createTokenDto();
+
+        Mockito.when(pbBankClientMock.approvePayment(orderDto, bearerToken)).thenReturn(new PaymentForm());
+        PaymentForm paymentForm = service.callGateway(orderDto, tokenDto);
+
+        assertNotEquals(null, paymentForm);
+    }
+
+    @Test
+    void shouldAprovePayment() {
+        PaymentForm paymentForm = createPaymentForm();
+        service.registerPayment(paymentForm);
+
+        assertNotEquals(null, paymentForm);
     }
 
 
 
+    //Mock Util methods
 
-    //itemlist
     private List<ItemForm> itens() {
         List<ItemForm> itemList = new ArrayList<>();
 
@@ -134,5 +167,37 @@ class PaymentServiceTest {
         return itemList;
     }
 
+    public List<PaymentEntity> createPaymentList() {
+        List<PaymentEntity> paymentEntityList = new ArrayList<>();
+
+        PaymentEntity payment1 = new PaymentEntity();
+        PaymentEntity payment2 = new PaymentEntity();
+
+        paymentEntityList.add(payment1);
+        paymentEntityList.add(payment2);
+
+        return paymentEntityList;
+    }
+
+    public TokenDto createTokenDto() {
+        TokenDto tokenDto = new TokenDto("sadsads-adas.a4q55qd5", "Bearer", 180);
+        return tokenDto;
+    }
+
+    public ClientAuthenticationForm createClientForm() {
+        ClientAuthenticationForm authenticationForm = new ClientAuthenticationForm(
+                "4516asd58","sdadsa56d1a8a.dsf1s3df1");
+        return authenticationForm;
+    }
+
+    public OrderDto createOrderDto() {
+        OrderDto orderDto = new OrderDto("aada",new CustomerDto(DocumentType.CPF, "12354984631"), PaymentType.CREDIT_CARD, CurrencyType.BRL, BigDecimal.valueOf(300), new CardDto( "13165464", "sdasdas", "aadsasda", Brand.MASTERCARD, "sdadsadsa", "saasda"));
+        return orderDto;
+    }
+
+    public PaymentForm createPaymentForm() {
+        PaymentForm paymentForm = new PaymentForm("1231","213123332", BigDecimal.valueOf(100), "sadada",PaymentStatus.APPROVED,"2022", new AuthorizationForm("asdasdas"));
+        return paymentForm;
+    }
 
 }

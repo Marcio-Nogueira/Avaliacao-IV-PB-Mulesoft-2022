@@ -2,10 +2,14 @@ package br.com.compass.paymentservicepb.dto;
 
 import br.com.compass.paymentservicepb.constant.Brand;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class CardDto {
 
     @JsonProperty("number_token")

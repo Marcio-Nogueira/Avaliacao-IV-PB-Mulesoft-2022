@@ -3,12 +3,16 @@ package br.com.compass.paymentservicepb.dto;
 import br.com.compass.paymentservicepb.constant.CurrencyType;
 import br.com.compass.paymentservicepb.constant.PaymentType;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderDto {
 
     @JsonProperty("seller_id")

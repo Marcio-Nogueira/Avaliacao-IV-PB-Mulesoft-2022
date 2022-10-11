@@ -2,6 +2,8 @@ package br.com.compass.paymentservicepb.controller;
 
 import br.com.compass.paymentservicepb.dto.OrderDto;
 import br.com.compass.paymentservicepb.dto.PaymentDto;
+import br.com.compass.paymentservicepb.dto.TokenDto;
+import br.com.compass.paymentservicepb.form.ClientAuthenticationForm;
 import br.com.compass.paymentservicepb.form.OrderForm;
 import br.com.compass.paymentservicepb.form.PaymentForm;
 import br.com.compass.paymentservicepb.http.AuthClient;
@@ -28,10 +30,12 @@ public class PaymentController {
 
     @PostMapping()
     public ResponseEntity<PaymentDto> registerPayment(@RequestBody @Valid OrderForm form, @NotNull UriComponentsBuilder uriBuilder) {
-        service.getToken();
+        ClientAuthenticationForm clientForm = new ClientAuthenticationForm("client_id_mulesoft", "91452c37-e343-4738-a94a-be113875cb2b");
+        TokenDto tokenDto = authClient.getToken(clientForm);
+        service.getBearerToken(tokenDto);
 
         OrderDto orderDto = service.createPaymentOrder(form);
-        PaymentForm paymentForm = service.CallGateway(orderDto);
+        PaymentForm paymentForm = service.callGateway(orderDto, tokenDto);
         PaymentDto paymentDto = service.registerPayment(paymentForm);
 
         URI uri = uriBuilder.path("/payment/{orderId}").buildAndExpand(paymentDto.getOrderId()).toUri();
